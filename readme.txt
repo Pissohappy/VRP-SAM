@@ -10,3 +10,5 @@ transformer_decoder后面接Gated Fusion
 封装fusion函数
 2. train.py:
 模型调用传入class_id
+
+两个文件保留了v0版本，即为baseline，无需运行
