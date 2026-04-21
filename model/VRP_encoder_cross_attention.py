@@ -10,7 +10,7 @@ import model.base.vgg as vgg_models
 from torch.nn import BatchNorm2d as BatchNorm
 from common.utils import get_stroke_preset, get_random_points_from_mask, get_mask_by_input_strokes
 
-from .base.transformer_decoder import transformer_decoder
+from .base.transformer_decoder_cross_attention import transformer_decoder
 
 # copy from SEEM
 def get_bounding_boxes(mask):

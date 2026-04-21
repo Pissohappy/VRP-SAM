@@ -8,11 +8,11 @@ import torch
 import torch.nn.functional as F
 import torch.distributed as dist
 
-from model.VRP_encoder import VRP_encoder
+from model.VRP_encoder_cross_attention import VRP_encoder
 from common.logger import Logger, AverageMeter
 from common.evaluation import Evaluator
 from common import utils
-from data.dataset import FSSDataset
+from data.dataset_cross_attention import FSSDataset
 from SAM2pred import SAM_pred
 
 

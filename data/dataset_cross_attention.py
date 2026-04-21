@@ -3,8 +3,8 @@ import torch
 from torchvision import transforms
 from torch.utils.data import DataLoader
 
-from data.pascal import DatasetPASCAL
-from data.coco import DatasetCOCO
+from data.pascal_cross_attention import DatasetPASCAL
+from data.coco_cross_attention import DatasetCOCO
 # from data.coco2pascal import DatasetCOCO2PASCAL
 
 
