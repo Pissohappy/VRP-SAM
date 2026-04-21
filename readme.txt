@@ -11,4 +11,9 @@ transformer_decoder后面接Gated Fusion
 2. train.py:
 模型调用传入class_id
 
-两个文件保留了v0版本，即为baseline，无需运行
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch \
+    --nproc_per_node=1 train.py \
+    --benchmark pascal \
+    --datapath /home/user/zhangdantong/Datasets_HSN \
+    --bsz 1 \
+    --text_prompt_template "a segmentation mask of a {class_name}"
