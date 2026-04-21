@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import torch
 import PIL.Image as Image
 import numpy as np
+from data.class_names import PASCAL_CLASS_NAMES
 
 
 class DatasetPASCAL(Dataset):
@@ -63,7 +64,8 @@ class DatasetPASCAL(Dataset):
                  'support_names': support_names,
                  'support_ignore_idxs': support_ignore_idxs,
 
-                 'class_id': torch.tensor(class_sample)}
+                 'class_id': torch.tensor(class_sample),
+                 'class_name': PASCAL_CLASS_NAMES[class_sample]}
 
         return batch
 

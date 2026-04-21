@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torch
 import PIL.Image as Image
 import numpy as np
+from data.class_names import COCO_CLASS_NAMES
 
 
 class DatasetCOCO(Dataset):
@@ -53,7 +54,8 @@ class DatasetCOCO(Dataset):
                  'support_imgs': support_imgs,
                  'support_masks': support_masks,
                  'support_names': support_names,
-                 'class_id': torch.tensor(class_sample)}
+                 'class_id': torch.tensor(class_sample),
+                 'class_name': COCO_CLASS_NAMES[class_sample]}
 
         return batch
 

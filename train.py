@@ -26,7 +26,14 @@ def train(args, epoch, model, sam_model, dataloader, optimizer, scheduler, train
     for idx, batch in enumerate(dataloader):
         
         batch = utils.to_cuda(batch)
-        protos, _ = model(args.condition, batch['query_img'], batch['support_imgs'].squeeze(1), batch['support_masks'].squeeze(1), training)
+        protos, _ = model(
+            args.condition,
+            batch['query_img'],
+            batch['support_imgs'].squeeze(1),
+            batch['support_masks'].squeeze(1),
+            training,
+            batch.get('class_name'),
+        )
 
         low_masks, pred_mask = sam_model(batch['query_img'], batch['query_name'], protos)
         logit_mask = low_masks
@@ -71,6 +78,9 @@ if __name__ == '__main__':
     parser.add_argument('--local_rank', type=int, default=-1, help='number of cpu threads to use during batch generation')
     parser.add_argument('--num_query', type=int, default=50)
     parser.add_argument('--backbone', type=str, default='resnet50', choices=['vgg16', 'resnet50', 'resnet101'])
+    parser.add_argument('--fusion_type', type=str, default='visual', choices=['visual', 'text_cross_attention'])
+    parser.add_argument('--text_model_name', type=str, default='ViT-B/16')
+    parser.add_argument('--text_prompt_template', type=str, default='a photo of a {class_name}.')
     args = parser.parse_args()
     # Distributed setting
     local_rank = args.local_rank
@@ -105,12 +115,23 @@ if __name__ == '__main__':
     for param in model.module.layer4.parameters():
         param.requires_grad = False
 
-    optimizer = optim.AdamW([
+    optimizer_grouped_parameters = [
         {'params': model.module.transformer_decoder.parameters()},
         {'params': model.module.downsample_query.parameters(), "lr": args.lr},
         {'params': model.module.merge_1.parameters(), "lr": args.lr},
-        
-        ],lr = args.lr, weight_decay=args.weight_decay, betas=(0.9, 0.999))
+    ]
+    if args.fusion_type == 'text_cross_attention':
+        optimizer_grouped_parameters.extend([
+            {'params': model.module.text_proj.parameters(), "lr": args.lr},
+            {'params': model.module.text_norm.parameters(), "lr": args.lr},
+        ])
+
+    optimizer = optim.AdamW(
+        optimizer_grouped_parameters,
+        lr=args.lr,
+        weight_decay=args.weight_decay,
+        betas=(0.9, 0.999),
+    )
     Evaluator.initialize(args)
 
     # Dataset initialization

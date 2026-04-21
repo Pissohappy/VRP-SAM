@@ -147,6 +147,8 @@ def dice_loss(
 class VRP_encoder(nn.Module):
     def __init__(self, args, backbone, use_original_imgsize):
         super(VRP_encoder, self).__init__()
+        self.args = args
+        self.fusion_type = args.fusion_type
 
         # 1. Backbone network initialization
         self.backbone_type = backbone
@@ -186,12 +188,61 @@ class VRP_encoder(nn.Module):
         self.num_query = args.num_query
 
         self.transformer_decoder = transformer_decoder(args, args.num_query, hidden_dim, hidden_dim*2)
+        self.text_encoder = None
+        self.text_tokenizer = None
+        self.text_proj = None
+        self.text_norm = None
+        self.text_width = None
+        if self.fusion_type == 'text_cross_attention':
+            self._init_text_encoder(hidden_dim)
 
         self.cross_entropy_loss = nn.CrossEntropyLoss()
         self.mse_loss = nn.MSELoss()
         self.bce_with_logits_loss = nn.BCEWithLogitsLoss()
 
-    def forward(self, condition, query_img, support_img, support_mask, training):
+    def _init_text_encoder(self, hidden_dim):
+        try:
+            import clip
+        except ImportError as exc:
+            raise ImportError(
+                "fusion_type='text_cross_attention' requires the OpenAI CLIP package to be installed."
+            ) from exc
+
+        try:
+            self.text_encoder, _ = clip.load(self.args.text_model_name, device='cpu', jit=False)
+        except Exception as exc:
+            raise RuntimeError(
+                "Failed to load the text model '{}'. Make sure the weights are cached or downloadable."
+                .format(self.args.text_model_name)
+            ) from exc
+        self.text_tokenizer = clip.tokenize
+        self.text_encoder.eval()
+        for param in self.text_encoder.parameters():
+            param.requires_grad = False
+
+        self.text_width = self.text_encoder.ln_final.weight.shape[0]
+        self.text_proj = nn.Linear(self.text_width, hidden_dim)
+        self.text_norm = nn.LayerNorm(hidden_dim)
+
+    def encode_text_prompts(self, class_names, device):
+        prompts = [self.args.text_prompt_template.format(class_name=name) for name in class_names]
+        tokenized = self.text_tokenizer(prompts, truncate=True).to(device)
+        text_encoder = self.text_encoder.to(device)
+        with torch.no_grad():
+            text_tokens = text_encoder.token_embedding(tokenized).type(text_encoder.dtype)
+            text_tokens = text_tokens + text_encoder.positional_embedding.type(text_encoder.dtype)
+            text_tokens = text_tokens.permute(1, 0, 2)
+            text_tokens = text_encoder.transformer(text_tokens)
+            text_tokens = text_tokens.permute(1, 0, 2)
+            text_tokens = text_encoder.ln_final(text_tokens).float()
+
+        text_tokens = self.text_proj(text_tokens)
+        text_tokens = self.text_norm(text_tokens)
+        text_tokens = text_tokens.permute(1, 0, 2)
+        text_padding_mask = tokenized.eq(0)
+        return text_tokens, text_padding_mask
+
+    def forward(self, condition, query_img, support_img, support_mask, training, class_names=None):
 
         # if training:
         #     condition = random.Random().choices(['scribble', 'point', 'box', 'mask'], weights=[0.25,0.25,0.25,0.25], k=1)[0]  
@@ -235,7 +286,20 @@ class VRP_encoder(nn.Module):
         supp_feat_1 = self.merge_1(torch.cat([supp_feat, supp_feat_bin, support_mask*10], 1))                                                                                    
         query_feat_1 = self.merge_1(torch.cat([query_feat, supp_feat_bin, pseudo_mask*10], 1))
 
-        protos = self.transformer_decoder(query_feat_1, supp_feat_1, support_mask)
+        text_tokens = None
+        text_padding_mask = None
+        if self.fusion_type == 'text_cross_attention':
+            if class_names is None:
+                raise ValueError("class_names must be provided when fusion_type='text_cross_attention'.")
+            text_tokens, text_padding_mask = self.encode_text_prompts(class_names, query_feat_1.device)
+
+        protos = self.transformer_decoder(
+            query_feat_1,
+            supp_feat_1,
+            support_mask,
+            text_tokens=text_tokens,
+            text_padding_mask=text_padding_mask,
+        )
         return protos, support_mask_ori
 
     def mask_feature(self, features, support_mask):
@@ -252,7 +316,14 @@ class VRP_encoder(nn.Module):
         logit_mask_agg = 0
         protos_set = []
         for s_idx in range(nshot):
-            protos_sub, support_mask = self(args.condition, batch['query_img'], batch['support_imgs'][:, s_idx], batch['support_masks'][:, s_idx], False)
+            protos_sub, support_mask = self(
+                args.condition,
+                batch['query_img'],
+                batch['support_imgs'][:, s_idx],
+                batch['support_masks'][:, s_idx],
+                False,
+                batch.get('class_name'),
+            )
             protos_set.append(protos_sub)
         if nshot > 1:
             protos = torch.cat(protos_set, dim=1)
@@ -282,6 +353,8 @@ class VRP_encoder(nn.Module):
         self.train()
         self.apply(fix_bn)
         self.layer0.eval(), self.layer1.eval(), self.layer2.eval(), self.layer3.eval(), self.layer4.eval()
+        if self.text_encoder is not None:
+            self.text_encoder.eval()
 
     def get_pseudo_mask(self, tmp_supp_feat, query_feat_4, mask):
         resize_size = tmp_supp_feat.size(2)

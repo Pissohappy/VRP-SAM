@@ -275,7 +275,9 @@ class transformer_decoder(nn.Module):
     self.transformer_self_attention_layers_0 = nn.ModuleList()
     self.transformer_cross_attention_layers = nn.ModuleList()
     self.transformer_cross_attention_layers_0 = nn.ModuleList()
+    self.transformer_text_cross_attention_layers = nn.ModuleList()
     self.transformer_ffn_layers = nn.ModuleList()
+    self.use_text_cross_attention = args.fusion_type == 'text_cross_attention'
 
     for _ in range(self.num_layers):
         self.transformer_self_attention_layers.append(
@@ -310,12 +312,21 @@ class transformer_decoder(nn.Module):
                 normalize_before=pre_norm,
             )
         )
+        if self.use_text_cross_attention:
+            self.transformer_text_cross_attention_layers.append(
+                CrossAttentionLayer(
+                    d_model=hidden_dim,
+                    nhead=nheads,
+                    dropout=0.0,
+                    normalize_before=pre_norm,
+                )
+            )
     
         self.num_queries = num_queries
 
         self.supp_q_feat = nn.Embedding(num_queries, hidden_dim)         
 
-  def forward(self, x, x_s, support_mask):
+  def forward(self, x, x_s, support_mask, text_tokens=None, text_padding_mask=None):
     
     bs, C, H, W = x.shape
     pos_x = self.pe_layer(x, None).flatten(2).to(x.device).permute(2, 0, 1)                                                                                                  
@@ -348,6 +359,18 @@ class transformer_decoder(nn.Module):
             memory_key_padding_mask=None,  # here we do not apply masking on padded region
             pos=pos_x, query_pos=None, value_pos=None
         )
+
+        if text_tokens is not None:
+            output = self.transformer_text_cross_attention_layers[i](
+                output,
+                text_tokens,
+                text_tokens,
+                memory_mask=None,
+                memory_key_padding_mask=text_padding_mask,
+                pos=None,
+                query_pos=None,
+                value_pos=None,
+            )
         
         output = self.transformer_self_attention_layers[i](
             output, tgt_mask=None,
