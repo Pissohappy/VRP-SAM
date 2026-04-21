@@ -1,0 +1,13 @@
+.idea/
+__pycache__/
+*.pyc
+
+*.pth
+*.pt
+*.ckpt
+
+datasets/
+logs/
+outputs/
+runs/
+checkpoints/

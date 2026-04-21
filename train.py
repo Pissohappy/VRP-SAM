@@ -1,4 +1,4 @@
-r""" Visual Prompt Encoder training (validation) code """
+r""" Visual Prompt Encoder training (validation) code with CLIP-based text prompt """
 import os
 import argparse
 
@@ -79,6 +79,13 @@ if __name__ == '__main__':
     parser.add_argument('--local_rank', type=int, default=-1, help='number of cpu threads to use during batch generation')
     parser.add_argument('--num_query', type=int, default=50)
     parser.add_argument('--backbone', type=str, default='resnet50', choices=['vgg16', 'resnet50', 'resnet101'])
+
+    # CLIP / text prompt settings
+    parser.add_argument('--freeze_clip', action='store_true', default=True,
+                        help='Freeze CLIP text encoder parameters')
+    parser.add_argument('--text_prompt_template', type=str, default='a photo of a {class_name}',
+                        help='Prompt template for CLIP text encoder')
+
     args = parser.parse_args()
 
     # Distributed setting
@@ -111,6 +118,7 @@ if __name__ == '__main__':
         find_unused_parameters=True
     )
 
+    # Freeze backbone
     for param in model.module.layer0.parameters():
         param.requires_grad = False
     for param in model.module.layer1.parameters():
@@ -122,17 +130,32 @@ if __name__ == '__main__':
     for param in model.module.layer4.parameters():
         param.requires_grad = False
 
-    optimizer = optim.AdamW([
+    # Freeze CLIP text encoder by default
+    if hasattr(model.module, 'clip_model') and args.freeze_clip:
+        for param in model.module.clip_model.parameters():
+            param.requires_grad = False
+
+    # Optimizer
+    trainable_params = [
         {'params': model.module.transformer_decoder.parameters()},
         {'params': model.module.downsample_query.parameters(), 'lr': args.lr},
         {'params': model.module.merge_1.parameters(), 'lr': args.lr},
-
-        # Gated Fusion parameters
-        {'params': model.module.class_text_embed.parameters(), 'lr': args.lr},
         {'params': model.module.text_proj.parameters(), 'lr': args.lr},
         {'params': model.module.gate_fc.parameters(), 'lr': args.lr},
+    ]
 
-    ], lr=args.lr, weight_decay=args.weight_decay, betas=(0.9, 0.999))
+    # Optional: if later you want to finetune CLIP text encoder, turn off freeze_clip
+    if hasattr(model.module, 'clip_model') and (not args.freeze_clip):
+        clip_params = [p for p in model.module.clip_model.parameters() if p.requires_grad]
+        if len(clip_params) > 0:
+            trainable_params.append({'params': clip_params, 'lr': args.lr * 0.1})
+
+    optimizer = optim.AdamW(
+        trainable_params,
+        lr=args.lr,
+        weight_decay=args.weight_decay,
+        betas=(0.9, 0.999)
+    )
 
     Evaluator.initialize(args)
 
@@ -166,11 +189,21 @@ if __name__ == '__main__':
             if utils.is_main_process():
                 Logger.save_model_miou(model, epoch, val_miou)
 
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+
         if utils.is_main_process():
             Logger.tbd_writer.add_scalars('data/loss', {'trn_loss': trn_loss, 'val_loss': val_loss}, epoch)
             Logger.tbd_writer.add_scalars('data/miou', {'trn_miou': trn_miou, 'val_miou': val_miou}, epoch)
             Logger.tbd_writer.add_scalars('data/fb_iou', {'trn_fb_iou': trn_fb_iou, 'val_fb_iou': val_fb_iou}, epoch)
             Logger.tbd_writer.flush()
+
+            print(
+                f"[Epoch {epoch:03d}] "
+                f"trn_loss={trn_loss:.4f}, val_loss={val_loss:.4f}, "
+                f"trn_miou={trn_miou:.4f}, val_miou={val_miou:.4f}, "
+                f"best_val_miou={best_val_miou:.4f}"
+            )
 
     Logger.tbd_writer.close()
     Logger.info('==================== Finished Training ====================')

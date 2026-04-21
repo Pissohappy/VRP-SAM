@@ -1,10 +1,12 @@
-r""" Visual Prompt Encoder of VRP-SAM with Gated Fusion """
+r""" Visual Prompt Encoder of VRP-SAM with CLIP-based Gated Fusion and configurable text prompt """
 from functools import reduce
 from operator import add
 import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import clip
+
 import model.base.resnet as models
 import model.base.vgg as vgg_models
 from torch.nn import BatchNorm2d as BatchNorm
@@ -163,6 +165,7 @@ def dice_loss(inputs: torch.Tensor, targets: torch.Tensor, num_masks: float):
 class VRP_encoder(nn.Module):
     def __init__(self, args, backbone, use_original_imgsize):
         super(VRP_encoder, self).__init__()
+        self.args = args
 
         # 1. Backbone network initialization
         self.backbone_type = backbone
@@ -218,10 +221,18 @@ class VRP_encoder(nn.Module):
 
         self.transformer_decoder = transformer_decoder(args, args.num_query, hidden_dim, hidden_dim * 2)
 
-        # 2. Gated Fusion modules
+        # 2. CLIP-based text branch for gated fusion
         self.num_classes = self._get_num_classes(args)
-        self.class_text_embed = nn.Embedding(self.num_classes, hidden_dim)
-        self.text_proj = nn.Linear(hidden_dim, hidden_dim)
+        self.class_names = self._build_class_names(getattr(args, 'benchmark', 'coco'))
+
+        self.clip_model, _ = clip.load("ViT-B/16", device="cpu", jit=False)
+        self.clip_model = self.clip_model.float()
+        self.clip_model.eval()
+        for param in self.clip_model.parameters():
+            param.requires_grad = False
+
+        # CLIP text feature dim = 512 for ViT-B/16
+        self.text_proj = nn.Linear(512, hidden_dim)
         self.gate_fc = nn.Linear(hidden_dim * 2, hidden_dim)
 
         self.cross_entropy_loss = nn.CrossEntropyLoss()
@@ -234,25 +245,88 @@ class VRP_encoder(nn.Module):
 
         benchmark = getattr(args, 'benchmark', 'coco')
         if benchmark == 'pascal':
-            return 21   # commonly 20 foreground + background/index buffer
+            return 21
         elif benchmark == 'coco':
-            return 81   # commonly 80 foreground + background/index buffer
+            return 81
         elif benchmark == 'fss':
-            return 1001
+            return 1000
         else:
-            return 1001
+            return 1000
+
+    def _build_class_names(self, benchmark):
+        if benchmark == 'pascal':
+            return [
+                'background',
+                'aeroplane', 'bicycle', 'bird', 'boat', 'bottle',
+                'bus', 'car', 'cat', 'chair', 'cow',
+                'dining table', 'dog', 'horse', 'motorbike', 'person',
+                'potted plant', 'sheep', 'sofa', 'train', 'tv monitor'
+            ]
+
+        elif benchmark == 'coco':
+            return [
+                'background',
+                'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat',
+                'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench',
+                'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe',
+                'backpack', 'umbrella', 'handbag', 'tie', 'suitcase',
+                'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove',
+                'skateboard', 'surfboard', 'tennis racket',
+                'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl',
+                'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake',
+                'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet',
+                'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+                'microwave', 'oven', 'toaster', 'sink', 'refrigerator',
+                'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
+            ]
+
+        elif benchmark == 'fss':
+            return [f'class {i}' for i in range(self.num_classes)]
+
+        else:
+            return [f'class {i}' for i in range(self.num_classes)]
+
+    def build_text_prompts(self, class_id):
+        """
+        class_id: [B] or [B, 1]
+        return: list[str]
+        """
+        if class_id.dim() > 1:
+            class_id = class_id.squeeze(-1)
+
+        class_id = class_id.long().clamp(min=0, max=len(self.class_names) - 1)
+        class_names = [self.class_names[idx.item()] for idx in class_id]
+
+        template = getattr(self.args, 'text_prompt_template', 'a photo of a {class_name}')
+        prompts = [template.format(class_name=name) for name in class_names]
+        return prompts
+
+    def encode_text_prompt(self, class_id):
+        """
+        class_id: [B] or [B, 1]
+        return: text_feat [B, hidden_dim]
+        """
+        prompts = self.build_text_prompts(class_id)
+        print("Using CLIP text prompt:", prompts[:2])
+
+        tokens = clip.tokenize(prompts)
+
+        clip_device = next(self.clip_model.parameters()).device
+        tokens = tokens.to(clip_device)
+
+        with torch.no_grad():
+            text_feat = self.clip_model.encode_text(tokens).float()   # [B, 512]
+            text_feat = text_feat / text_feat.norm(dim=-1, keepdim=True)
+
+        text_feat = self.text_proj(text_feat)  # [B, hidden_dim]
+        return text_feat
 
     def gated_fusion(self, visual_proto, class_id):
         """
         visual_proto: [B, N, C]
         class_id:     [B] or [B, 1]
         """
-        if class_id.dim() > 1:
-            class_id = class_id.squeeze(-1)
-        class_id = class_id.long().clamp(min=0, max=self.num_classes - 1)
-
-        text_feat = self.class_text_embed(class_id)         # [B, C]
-        text_feat = self.text_proj(text_feat)               # [B, C]
+        text_feat = self.encode_text_prompt(class_id)  # [B, C]
         text_feat = text_feat.unsqueeze(1).expand(-1, visual_proto.size(1), -1)  # [B, N, C]
 
         gate_input = torch.cat([visual_proto, text_feat], dim=-1)  # [B, N, 2C]
@@ -325,7 +399,7 @@ class VRP_encoder(nn.Module):
         # visual prompt tokens: [B, num_queries, hidden_dim]
         protos = self.transformer_decoder(query_feat_merged, supp_feat_merged, support_mask_resized)
 
-        # gated fusion with class semantic embedding
+        # CLIP text prompt fusion
         if class_id is not None:
             protos = self.gated_fusion(protos, class_id)
 
@@ -382,6 +456,7 @@ class VRP_encoder(nn.Module):
         self.train()
         self.apply(fix_bn)
         self.layer0.eval(), self.layer1.eval(), self.layer2.eval(), self.layer3.eval(), self.layer4.eval()
+        self.clip_model.eval()
 
     def get_pseudo_mask(self, tmp_supp_feat, query_feat_4, mask):
         resize_size = tmp_supp_feat.size(2)
