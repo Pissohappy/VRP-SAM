@@ -106,7 +106,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -m torch.distributed.launch \
     --nproc_per_node=4 \
     --master_port=6224 \
     train.py \
-    --datapath /path/to/datasets \
+    --datapath /mnt/disk1/szchen/VLMBenchmark/repo/Datasets_HSN \
     --logpath logs/cross_attn_pascal_fold0 \
     --benchmark pascal \
     --backbone resnet50 \
