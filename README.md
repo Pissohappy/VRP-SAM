@@ -1,17 +1,3 @@
-## VRP-SAM: SAM with Visual Reference Prompt
-
-**Update**:
-1. The manuscript has been accepted in __CVPR 2024__.
-2. **Core code has been updated**
-
-This is the official implementation based on pytorch of the paper [VRP-SAM: SAM with Visual Reference Prompt](https://arxiv.org/abs/2402.17726) 
-
-Authors: Yanpeng Sun, Jiahui Chen, Shan Zhang, Xinyu Zhang, Qiang Chen, Gang Zhang, Errui Ding, Jingdong Wang, [Zechao Li](https://zechao-li.github.io/)
-
-<p align="middle">
-    <img src="assets/vrp_sam.jpg" height="360">
-</p>
-
 ## Requirements
 
 - Python 3.10
@@ -33,6 +19,19 @@ pip install -v -e .
 cd ..
 ```
 
+CLIP setting:
+```bash
+pip install git+https://github.com/openai/CLIP.git
+```
+
+## Preparing Pre-Trained Models
+#### Please download [sam_vit_h_4b8939.pth](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth) from Facebook Research.
+
+#### Please download [resnet50_v2.pth](https://drive.google.com/drive/folders/1Hrz1wOxOZm4nIIS7UMJeL79AQrdvpj6v) from original [VRP-SAM issue](https://github.com/syp2ysy/VRP-SAM/issues/21).
+
+Create a directory './pre_trained' and place the two model weight inside.
+
+
 ## Preparing Few-Shot Segmentation Datasets
 Download following datasets:
 
@@ -41,7 +40,7 @@ Download following datasets:
 > ```bash
 > wget http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
 > ```
-> Download PASCAL VOC2012 SDS extended mask annotations from our [[Google Drive](https://drive.google.com/file/d/10zxG2VExoEZUeyQl_uXga2OWHjGeZaf2/view?usp=sharing)].
+> Download PASCAL VOC2012 SDS extended mask annotations from [[Google Drive](https://drive.google.com/file/d/10zxG2VExoEZUeyQl_uXga2OWHjGeZaf2/view?usp=sharing)].
 
 > #### 2. COCO-20<sup>i</sup>
 > Download COCO2014 train/val images and annotations: 
@@ -50,7 +49,7 @@ Download following datasets:
 > wget http://images.cocodataset.org/zips/val2014.zip
 > wget http://images.cocodataset.org/annotations/annotations_trainval2014.zip
 > ```
-> Download COCO2014 train/val annotations from our Google Drive: [[train2014.zip](https://drive.google.com/file/d/1cwup51kcr4m7v9jO14ArpxKMA4O3-Uge/view?usp=sharing)], [[val2014.zip](https://drive.google.com/file/d/1PNw4U3T2MhzAEBWGGgceXvYU3cZ7mJL1/view?usp=sharing)].
+> Download COCO2014 train/val annotations from Google Drive: [[train2014.zip](https://drive.google.com/file/d/1cwup51kcr4m7v9jO14ArpxKMA4O3-Uge/view?usp=sharing)], [[val2014.zip](https://drive.google.com/file/d/1PNw4U3T2MhzAEBWGGgceXvYU3cZ7mJL1/view?usp=sharing)].
 > (and locate both train2014/ and val2014/ under annotations/ directory).
 
 
@@ -82,31 +81,28 @@ Create a directory '../dataset' for the above few-shot segmentation datasets and
        
 
 ## Training
-We provide a example training script "train.sh". Detailed training argumnets are as follows:
+We provide a example training command. Detailed training argumnets are as follows:
 
 > ```bash
-> python3 -m torch.distributed.launch --nproc_per_node=$GPUs$ train.py \
+> python3 -m torch.distributed.launch --nproc_per_node=$GPUs$ {train_gated_fusion.py, train_cross_attention.py, train_CA_fusion.py} \
 >         --datapath $PATH_TO_YOUR_DATA$ \
 >         --logpath $PATH_TO_YOUR_LOG$ \
 >         --benchmark {coco, pascal} \
 >         --backbone {vgg16, resnet50, resnet101} \
 >         --fold {0, 1, 2, 3} \
 >         --condition {point, scribble, box, mask} \
->         --num_queirs 50 \
+>         --num_query 50 \
 >         --epochs 50 \
 >         --lr 1e-4 \
->         --bsz 2     
+>         --bsz 2  \
+>
+>         # the additional arg for cross_attention
+>         --fusion_type text_cross_attention   
 > ```
 
-
-#### Example qualitative results (1-shot):
-
-<p align="middle">
-    <img src="assets/prediction.jpg" height="500">
-</p>
    
 ## BibTeX
-If you use this code for your research, please consider citing:
+Citing to original VRP-SAM and their [code base](https://github.com/syp2ysy/VRP-SAM):
 ````BibTeX
 @inproceedings{sun2024vrp,
     title={VRP-SAM: SAM with Visual Reference Prompt},
