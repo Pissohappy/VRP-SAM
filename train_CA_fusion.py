@@ -11,12 +11,12 @@ import torch
 import torch.nn.functional as F
 import torch.distributed as dist
 
-from model.VRP_encoder import VRP_encoder
-from common.logger import Logger, AverageMeter
-from common.evaluation import Evaluator
+from model.VRP_encoder_CA_fusion import VRP_encoder
+from common.logger_CA_fusion import Logger, AverageMeter
+from common.evaluation_CA_fusion import Evaluator
 from common import utils
 from data.dataset import FSSDataset
-from SAM2pred import SAM_pred
+from SAM2pred_CA_fusion import SAM_pred
 
 
 RESULT_FIELDNAMES = [

@@ -5,7 +5,7 @@ import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import model.base.resnet as models
+import model.base.resnet_CA_fusion as models
 import model.base.vgg as vgg_models
 from torch.nn import BatchNorm2d as BatchNorm
 from common.utils import get_stroke_preset, get_random_points_from_mask, get_mask_by_input_strokes
