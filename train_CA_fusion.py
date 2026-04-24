@@ -181,14 +181,12 @@ if __name__ == '__main__':
     parser.add_argument('--fold', type=int, default=0, choices=[0, 1, 2, 3])
     parser.add_argument('--condition', type=str, default='scribble', choices=['point', 'scribble', 'box', 'mask'])
     parser.add_argument('--use_ignore', type=bool, default=True, help='Boundaries are not considered during pascal training')
-    parser.add_argument('--local_rank', '--local-rank', type=int, default=int(os.environ.get('LOCAL_RANK', -1)))
+    parser.add_argument('--local-rank', '--local-rank', type=int, default=int(os.environ.get('LOCAL_RANK', -1)))
     parser.add_argument('--num_query', type=int, default=50)
     parser.add_argument('--backbone', type=str, default='resnet50', choices=['vgg16', 'resnet50', 'resnet101'])
     parser.add_argument('--prompt_fusion', type=str, default='visual', choices=['visual', 'confidence_text'])
     parser.add_argument('--clip_model', type=str, default='ViT-B/16')
     parser.add_argument('--text_prompt_template', type=str, default='a photo of a {}.')
-    parser.add_argument('--sam_checkpoint', type=str, default=os.environ.get('VRPSAM_SAM_CHECKPOINT', default_sam_checkpoint))
-    parser.add_argument('--sam_feature_cache', type=str, default=os.environ.get('VRPSAM_SAM_FEATURE_CACHE', default_feature_cache))
     args = parser.parse_args()
     # Distributed setting
     local_rank = args.local_rank
@@ -208,7 +206,7 @@ if __name__ == '__main__':
     if utils.is_main_process():
         Logger.log_params(model)
 
-    sam_model = SAM_pred(args.sam_checkpoint, args.sam_feature_cache, args.benchmark)
+    sam_model = SAM_pred()
     sam_model.to(device)
     model.to(device)
     model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)

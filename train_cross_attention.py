@@ -75,7 +75,7 @@ if __name__ == '__main__':
     parser.add_argument('--fold', type=int, default=0, choices=[0, 1, 2, 3])
     parser.add_argument('--condition', type=str, default='scribble', choices=['point', 'scribble', 'box', 'mask'])
     parser.add_argument('--use_ignore', type=bool, default=True, help='Boundaries are not considered during pascal training')
-    parser.add_argument('--local_rank', type=int, default=-1, help='number of cpu threads to use during batch generation')
+    parser.add_argument('--local-rank', type=int, default=-1, help='number of cpu threads to use during batch generation')
     parser.add_argument('--num_query', type=int, default=50)
     parser.add_argument('--backbone', type=str, default='resnet50', choices=['vgg16', 'resnet50', 'resnet101'])
     parser.add_argument('--fusion_type', type=str, default='visual', choices=['visual', 'text_cross_attention'])

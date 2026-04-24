@@ -19,7 +19,7 @@ class  SAM_pred(nn.Module):
         return  query_feats
     
     def get_feat_from_np(self, query_img, query_name, protos):
-        np_feat_path = '/root/paddlejob/workspace/env_run/vrp_sam/feats_np/coco/'
+        np_feat_path = './feats_np/coco/'
         if not os.path.exists(np_feat_path): os.makedirs(np_feat_path)
         files_name = os.listdir(np_feat_path)
         query_feat_list = []

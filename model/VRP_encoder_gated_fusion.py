@@ -307,7 +307,7 @@ class VRP_encoder(nn.Module):
         return: text_feat [B, hidden_dim]
         """
         prompts = self.build_text_prompts(class_id)
-        print("Using CLIP text prompt:", prompts[:2])
+        #print("Using CLIP text prompt:", prompts[:2])
 
         tokens = clip.tokenize(prompts)
 
