@@ -319,7 +319,7 @@ def resnet50(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> 
     if pretrained:
         # model.load_state_dict(model_zoo.load_url(model_urls['resnet50']))
         # model_path = '/root/paddlejob/workspace/env_run/vrp_sam/resnet50_v2.pth'
-        model_path = '/mnt/disk1/szchen/VLMBenchmark/repo/Datasets_HSN/resnet50_v2.pth'
+        model_path = './pre_trained/resnet50_v2.pth'
         model.load_state_dict(torch.load(model_path), strict=False)
     return model
 

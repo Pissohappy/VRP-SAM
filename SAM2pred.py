@@ -8,7 +8,7 @@ import numpy as np
 class  SAM_pred(nn.Module):
     def __init__(self, ):
         super().__init__()
-        self.sam_model = sam_model_registry['vit_h']('/root/paddlejob/workspace/env_run/vrp_sam/sam_vit_h_4b8939.pth')
+        self.sam_model = sam_model_registry['vit_h']('./pre_trained/sam_vit_h_4b8939.pth')
         self.sam_model.eval()
 
     def forward_img_encoder(self, query_img):

@@ -16,7 +16,7 @@ from common.logger_CA_fusion import Logger, AverageMeter
 from common.evaluation_CA_fusion import Evaluator
 from common import utils
 from data.dataset import FSSDataset
-from SAM2pred_CA_fusion import SAM_pred
+from SAM2pred import SAM_pred
 
 
 RESULT_FIELDNAMES = [
