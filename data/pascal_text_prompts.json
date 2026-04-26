@@ -1,0 +1,444 @@
+{
+  "meta": {
+    "dataset": "PASCAL VOC 2012",
+    "num_classes": 20,
+    "version": "1.0",
+    "description": "Text prompts for multimodal VRP-SAM experiments. Each class includes generic templates, contrastive descriptions emphasizing distinguishing visual features, and part lists aligned with Pascal-Part annotations.",
+    "usage": {
+      "training": "Randomly sample one entry from 'templates' or 'descriptions' per iteration as text prompt.",
+      "inference": "Ensemble all templates and descriptions by averaging their text embeddings."
+    },
+    "fold_split_pascal_5i": {
+      "fold_0": ["aeroplane", "bicycle", "bird", "boat", "bottle"],
+      "fold_1": ["bus", "car", "cat", "chair", "cow"],
+      "fold_2": ["diningtable", "dog", "horse", "motorbike", "person"],
+      "fold_3": ["pottedplant", "sheep", "sofa", "train", "tvmonitor"]
+    }
+  },
+
+  "classes": {
+    "aeroplane": {
+      "class_id": 1,
+      "fold": 0,
+      "templates": [
+        "a photo of an aeroplane",
+        "a photo of the aeroplane",
+        "an image containing an aeroplane",
+        "a picture of an aeroplane",
+        "an aeroplane in the scene"
+      ],
+      "descriptions": [
+        "An aeroplane, a fixed-wing aircraft with a long tubular fuselage, two extended wings on either side, and a tail assembly with vertical and horizontal stabilizers, distinguished from helicopters by the absence of rotors.",
+        "A powered flying vehicle featuring a streamlined metallic body, swept or straight wings spanning wider than the fuselage, jet engines or propellers, and landing gear typically retracted in flight.",
+        "An aircraft with a pointed nose, cockpit windows near the front, cylindrical body, and clearly visible horizontal wings, often photographed against the sky or on a runway.",
+        "A commercial or military airplane recognizable by its elongated tube-shaped body, wide wingspan, and tail fin, distinct from birds by its rigid metallic structure and uniform shape."
+      ],
+      "parts": ["body", "wing", "engine", "tail", "wheel", "stern"],
+      "synonyms": ["airplane", "plane", "aircraft", "jet"]
+    },
+
+    "bicycle": {
+      "class_id": 2,
+      "fold": 0,
+      "templates": [
+        "a photo of a bicycle",
+        "a photo of the bicycle",
+        "an image containing a bicycle",
+        "a picture of a bicycle",
+        "a bicycle in the scene"
+      ],
+      "descriptions": [
+        "A bicycle, a two-wheeled human-powered vehicle with a metal frame, two equally-sized wheels in front-back alignment, pedals, a seat, and handlebars, distinguished from motorcycles by the absence of an engine and pedal-driven propulsion.",
+        "A pedal-driven cycle featuring a triangular frame, a chain connecting the pedals to the rear wheel, two thin tires, and a saddle mounted above the frame.",
+        "A lightweight transportation device with a slim tubular frame, spoked wheels, a handlebar for steering at the front, and a chain-and-sprocket drivetrain.",
+        "A non-motorized two-wheeler recognizable by its open diamond-shaped frame, exposed chain mechanism, narrow tires, and the rider seated upright with legs reaching pedals."
+      ],
+      "parts": ["wheel", "saddle", "handlebar", "chain", "frame", "pedal"],
+      "synonyms": ["bike", "cycle"]
+    },
+
+    "bird": {
+      "class_id": 3,
+      "fold": 0,
+      "templates": [
+        "a photo of a bird",
+        "a photo of the bird",
+        "an image containing a bird",
+        "a picture of a bird",
+        "a bird in the scene"
+      ],
+      "descriptions": [
+        "A bird, a warm-blooded vertebrate animal with feathers covering its body, two wings used for flight or display, a beak instead of teeth, and two thin legs ending in clawed feet, distinguished from mammals by feathers and beak.",
+        "A feathered creature with a compact body, pointed beak, two folded or outstretched wings, and slender legs, often perched on branches, standing on the ground, or in flight.",
+        "An avian animal recognizable by its plumage covering the entire body, distinct head with eyes on the sides, a hard beak, and a tail of feathers extending backward.",
+        "A small to medium-sized animal with a streamlined body covered in feathers of various colors, a forward-pointing beak, scaly legs, and wings folded against the body when not flying."
+      ],
+      "parts": ["head", "beak", "eye", "neck", "wing", "torso", "leg", "foot", "tail"],
+      "synonyms": ["fowl", "songbird"]
+    },
+
+    "boat": {
+      "class_id": 4,
+      "fold": 0,
+      "templates": [
+        "a photo of a boat",
+        "a photo of the boat",
+        "an image containing a boat",
+        "a picture of a boat",
+        "a boat in the scene"
+      ],
+      "descriptions": [
+        "A boat, a watercraft with a hollow hull designed to float on water, often with an open or partially enclosed deck, distinguished from large ships by smaller size and from aeroplanes by the absence of wings.",
+        "A floating vessel typically resting on water surfaces, featuring a curved hull, an interior cavity for passengers, and optional masts, sails, or motors at the rear.",
+        "A water vehicle with a streamlined or boxy hull, often photographed at a dock, on a lake, river, or sea, sometimes with sails extending upward or an outboard engine at the back.",
+        "A relatively small marine craft recognizable by its hull cutting the waterline, often surrounded by water reflections, ranging from rowboats and sailboats to small motorized vessels."
+      ],
+      "parts": ["body", "sail", "mast", "engine", "wheel"],
+      "synonyms": ["vessel", "ship", "watercraft"]
+    },
+
+    "bottle": {
+      "class_id": 5,
+      "fold": 0,
+      "templates": [
+        "a photo of a bottle",
+        "a photo of the bottle",
+        "an image containing a bottle",
+        "a picture of a bottle",
+        "a bottle in the scene"
+      ],
+      "descriptions": [
+        "A bottle, a tall slender container with a narrow neck and wider body, typically made of glass or plastic, used for holding liquids, distinguished from cups by the narrow opening and from cans by the necked shape.",
+        "An upright cylindrical or contoured vessel with a constricted top opening sealed by a cap or cork, transparent or opaque walls, and a flat bottom for standing.",
+        "A liquid container featuring a tall vertical body with a narrow tapered neck, often labeled, photographed standing on tables, shelves, or held in hand.",
+        "A handheld vessel recognizable by its elongated shape, distinct neck-and-shoulder transition, screw cap or cork seal, and capacity to hold beverages such as water, soda, or wine."
+      ],
+      "parts": ["cap", "body", "neck", "label"],
+      "synonyms": ["flask", "container"]
+    },
+
+    "bus": {
+      "class_id": 6,
+      "fold": 1,
+      "templates": [
+        "a photo of a bus",
+        "a photo of the bus",
+        "an image containing a bus",
+        "a picture of a bus",
+        "a bus in the scene"
+      ],
+      "descriptions": [
+        "A bus, a large boxy motor vehicle with multiple windows along both sides, a flat front and rear, and capacity for many passengers, distinguished from cars by its much greater length and from trucks by the row of passenger windows.",
+        "A long rectangular road vehicle with a tall body, multiple seating rows visible through side windows, two or more axles, and entry doors on the side.",
+        "A public transport vehicle featuring a high boxy chassis, large windshield at the front, signage displaying route numbers, and uniformly spaced side windows.",
+        "A heavy passenger vehicle recognizable by its elongated rectangular profile, flat roof, multiple wheels, and seating arrangement visible through wide rectangular windows."
+      ],
+      "parts": ["wheel", "headlight", "window", "door", "license plate", "mirror", "front", "side", "back", "roof"],
+      "synonyms": ["coach", "minibus", "transit bus"]
+    },
+
+    "car": {
+      "class_id": 7,
+      "fold": 1,
+      "templates": [
+        "a photo of a car",
+        "a photo of the car",
+        "an image containing a car",
+        "a picture of a car",
+        "a car in the scene"
+      ],
+      "descriptions": [
+        "A car, a four-wheeled passenger road vehicle with an enclosed cabin, a hood at the front covering the engine, and a trunk at the rear, distinguished from buses by smaller size and from trucks by the absence of a cargo bed.",
+        "A motorized automobile featuring a streamlined or angular body, four wheels with rubber tires, side doors with windows, headlights at the front and taillights at the back.",
+        "A common road vehicle recognizable by its low compact profile, sloping windshield, side mirrors, license plate, and the driver visible through the front windscreen.",
+        "A personal transportation vehicle with a sedan, hatchback, SUV, or coupe body shape, typically seating two to seven people, with metallic painted body panels reflecting light."
+      ],
+      "parts": ["wheel", "headlight", "window", "door", "license plate", "mirror", "front", "side", "back", "roof"],
+      "synonyms": ["automobile", "vehicle", "sedan"]
+    },
+
+    "cat": {
+      "class_id": 8,
+      "fold": 1,
+      "templates": [
+        "a photo of a cat",
+        "a photo of the cat",
+        "an image containing a cat",
+        "a picture of a cat",
+        "a cat in the scene"
+      ],
+      "descriptions": [
+        "A cat, a small domesticated carnivorous mammal with soft fur, triangular pointed upright ears, slit pupils in round eyes, retractable claws, and a long flexible tail, distinguished from dogs by smaller size, more triangular face, and pointed erect ears.",
+        "A feline animal featuring a compact muscular body, short snout with prominent whiskers, almond-shaped eyes, four padded paws, and a tail held curved or upright.",
+        "A furry house pet recognizable by its small rounded head, vertical pupils, twitching whiskers, soft coat in patterns of solid, tabby, calico, or tuxedo, and graceful posture.",
+        "A small mammal with a delicate facial structure, pointed triangular ears that swivel, a tapered muzzle, agile body capable of climbing and leaping, and a long expressive tail."
+      ],
+      "parts": ["head", "eye", "ear", "nose", "torso", "neck", "leg", "paw", "tail"],
+      "synonyms": ["kitten", "feline", "kitty"]
+    },
+
+    "chair": {
+      "class_id": 9,
+      "fold": 1,
+      "templates": [
+        "a photo of a chair",
+        "a photo of the chair",
+        "an image containing a chair",
+        "a picture of a chair",
+        "a chair in the scene"
+      ],
+      "descriptions": [
+        "A chair, a single-person seating furniture with a flat horizontal seat supported by four legs and a vertical backrest, distinguished from sofas by single-seat capacity and from stools by the presence of a backrest.",
+        "An item of furniture featuring a horizontal seating surface, a vertical or angled back support behind it, four legs reaching the floor, and optional armrests on either side.",
+        "A seat designed for one person, recognizable by its raised platform, upright back panel, four supporting legs or a central pedestal, and possible cushioning on the seat and back.",
+        "A piece of household or office furniture with a defined seat, clear backrest, and base supports, ranging from wooden dining chairs to padded office chairs with wheels."
+      ],
+      "parts": ["seat", "back", "leg", "armrest"],
+      "synonyms": ["seat", "armchair", "stool"]
+    },
+
+    "cow": {
+      "class_id": 10,
+      "fold": 1,
+      "templates": [
+        "a photo of a cow",
+        "a photo of the cow",
+        "an image containing a cow",
+        "a picture of a cow",
+        "a cow in the scene"
+      ],
+      "descriptions": [
+        "A cow, a large domesticated bovine mammal with a bulky barrel-shaped body, broad flat snout, two short curved horns or hornless head, large drooping ears, and a long thin tail, distinguished from horses by stockier build and shorter face, and from sheep by larger size and absence of woolly fleece.",
+        "A bovine farm animal featuring a heavy rectangular body, four sturdy legs ending in cloven hooves, a wide muzzle suited for grazing, and a coat in patterns of black, brown, white, or spotted combinations.",
+        "A cattle animal recognizable by its long body parallel to the ground, large head with wide-set eyes, prominent rounded udder if female, and slow grazing posture in fields.",
+        "A large hoofed mammal with a broad chest, dewlap of loose skin under the throat, sometimes visible horns, and a thin tufted tail used to swat insects."
+      ],
+      "parts": ["head", "eye", "ear", "muzzle", "horn", "torso", "neck", "leg", "tail"],
+      "synonyms": ["cattle", "calf", "bull", "bovine"]
+    },
+
+    "diningtable": {
+      "class_id": 11,
+      "fold": 2,
+      "templates": [
+        "a photo of a dining table",
+        "a photo of the dining table",
+        "an image containing a dining table",
+        "a picture of a dining table",
+        "a dining table in the scene"
+      ],
+      "descriptions": [
+        "A dining table, a large flat-topped piece of furniture surrounded by chairs, used for serving meals, distinguished from desks by the absence of drawers and typical placement in dining rooms with tableware on top.",
+        "A flat horizontal furniture surface elevated by four legs or a central pedestal, large enough to seat multiple people, often holding plates, cutlery, glasses, or food.",
+        "A rectangular, round, or oval tabletop supported by sturdy legs, recognizable by its purpose-built height for seated dining and the surrounding arrangement of chairs.",
+        "A piece of furniture featuring a wide flat top of wood, glass, or stone, supported by two or more legs, commonly photographed with place settings, food, or centerpieces."
+      ],
+      "parts": ["top", "leg"],
+      "synonyms": ["table", "dinner table", "kitchen table"]
+    },
+
+    "dog": {
+      "class_id": 12,
+      "fold": 2,
+      "templates": [
+        "a photo of a dog",
+        "a photo of the dog",
+        "an image containing a dog",
+        "a picture of a dog",
+        "a dog in the scene"
+      ],
+      "descriptions": [
+        "A dog, a domesticated canine mammal with a longer snout than cats, varied body sizes from small to very large, ears that may be erect or floppy, and a wagging tail, distinguished from cats by larger size variation, longer snout, and round pupils.",
+        "A four-legged carnivorous mammal featuring a furry body, elongated muzzle ending in a wet nose, alert eyes with round pupils, and a tail held in various positions expressing mood.",
+        "A canine companion animal recognizable by its diverse breed appearances, panting tongue often visible, distinct snout protruding from the face, and four legs with non-retractable claws.",
+        "A loyal pet mammal with a coat ranging from short to long fur in many colors, a forward-projecting muzzle, ears varying from pointed to drooping, and a body proportioned for running and walking."
+      ],
+      "parts": ["head", "eye", "ear", "nose", "muzzle", "torso", "neck", "leg", "paw", "tail"],
+      "synonyms": ["puppy", "canine", "hound"]
+    },
+
+    "horse": {
+      "class_id": 13,
+      "fold": 2,
+      "templates": [
+        "a photo of a horse",
+        "a photo of the horse",
+        "an image containing a horse",
+        "a picture of a horse",
+        "a horse in the scene"
+      ],
+      "descriptions": [
+        "A horse, a large hoofed mammal with a long elegant face, erect ears, flowing mane along the neck, muscular body on four long slender legs, and a long tail of hair, distinguished from cows by leaner build, longer face and legs, and the presence of a flowing mane.",
+        "An equine animal featuring a tall athletic body, smooth short coat in solid colors of brown, black, white, or chestnut, single hooves on each leg, and a graceful arched neck.",
+        "A four-legged mammal recognizable by its long narrow head, large nostrils, pricked-up ears, mane of long hair running down the neck and back, and a flowing tail of long hair.",
+        "A swift hoofed animal with a deep chest, slender legs ending in single solid hooves, expressive eyes set on the sides of the head, and a coat that is sleek rather than woolly or spotted."
+      ],
+      "parts": ["head", "eye", "ear", "muzzle", "neck", "torso", "leg", "tail", "hoof"],
+      "synonyms": ["pony", "stallion", "mare", "equine"]
+    },
+
+    "motorbike": {
+      "class_id": 14,
+      "fold": 2,
+      "templates": [
+        "a photo of a motorbike",
+        "a photo of the motorbike",
+        "an image containing a motorbike",
+        "a picture of a motorbike",
+        "a motorbike in the scene"
+      ],
+      "descriptions": [
+        "A motorbike, a two-wheeled motor vehicle with an exposed engine between the wheels, a fuel tank, handlebars, and a saddle, distinguished from bicycles by the visible engine and absence of pedals, and from cars by the open frame and two-wheel configuration.",
+        "A motorized two-wheeler featuring a metal frame straddled by the rider, two thick tires, an engine cylinder visible mid-frame, exhaust pipes, and handlebars with controls.",
+        "A motor-driven cycle recognizable by its central engine block, fuel tank above the engine, single seat or double seat, and the rider's body straddling the vehicle while gripping handlebars.",
+        "A road vehicle with two inline wheels, a chassis dominated by a visible engine and fuel tank, headlight at the front, and exhaust system, faster and heavier than a bicycle."
+      ],
+      "parts": ["wheel", "handlebar", "saddle", "headlight"],
+      "synonyms": ["motorcycle", "bike", "scooter"]
+    },
+
+    "person": {
+      "class_id": 15,
+      "fold": 2,
+      "templates": [
+        "a photo of a person",
+        "a photo of the person",
+        "an image containing a person",
+        "a picture of a person",
+        "a person in the scene"
+      ],
+      "descriptions": [
+        "A person, a human being with an upright bipedal posture, a head atop a neck connected to a torso, two arms ending in hands with five fingers each, and two legs ending in feet, distinguished from all other animals by clothing, upright walking, and the use of hands.",
+        "A human figure featuring a face with two forward-facing eyes, a nose, and a mouth, a torso typically covered by clothing, two arms with elbow joints, and two legs allowing standing or walking.",
+        "An adult or child human recognizable by the upright stance, visible facial features, garments covering most of the body, hairstyle on the head, and limbs proportioned for bipedal locomotion.",
+        "A person of any age or appearance, typically clothed, with a recognizable head-shoulders-torso-limbs structure, often interacting with objects or other people in everyday scenes."
+      ],
+      "parts": ["head", "eye", "ear", "nose", "mouth", "hair", "neck", "torso", "arm", "hand", "leg", "foot"],
+      "synonyms": ["human", "people", "individual", "man", "woman", "child"]
+    },
+
+    "pottedplant": {
+      "class_id": 16,
+      "fold": 3,
+      "templates": [
+        "a photo of a potted plant",
+        "a photo of the potted plant",
+        "an image containing a potted plant",
+        "a picture of a potted plant",
+        "a potted plant in the scene"
+      ],
+      "descriptions": [
+        "A potted plant, a living plant with green foliage growing out of a container holding soil, distinguished from outdoor plants by the visible pot at the base and from cut flowers by the presence of soil and roots in the container.",
+        "An indoor or decorative plant featuring leafy green foliage, sometimes with flowers, growing upward from a ceramic, plastic, or terracotta pot of cylindrical or conical shape.",
+        "A houseplant recognizable by the contrast between green leaves at the top and the rigid container at the bottom, often placed on floors, windowsills, tables, or shelves.",
+        "A cultivated plant with stems and leaves emerging from a defined planter, ranging from small succulents to tall leafy ferns, with the soil partially visible at the rim of the pot."
+      ],
+      "parts": ["plant", "pot"],
+      "synonyms": ["houseplant", "plant", "indoor plant"]
+    },
+
+    "sheep": {
+      "class_id": 17,
+      "fold": 3,
+      "templates": [
+        "a photo of a sheep",
+        "a photo of the sheep",
+        "an image containing a sheep",
+        "a picture of a sheep",
+        "a sheep in the scene"
+      ],
+      "descriptions": [
+        "A sheep, a medium-sized domesticated ruminant mammal with a thick woolly fleece covering most of the body, a small head, drooping ears, and a short tail, distinguished from cows by smaller size and woolly coat, and from dogs by hooves and the fluffy fleece.",
+        "A woolly farm animal featuring a compact body covered in dense curly white, brown, or black fleece, a comparatively bare face and lower legs, and cloven hooves.",
+        "A grazing herd animal recognizable by its puffy cloud-like coat of wool, slender legs protruding below the fleece, narrow face, and gentle posture in pastures.",
+        "A four-legged mammal with a fluffy thick wool coat that gives a rounded appearance, a small head with horizontal pupils, and a quiet grazing demeanor."
+      ],
+      "parts": ["head", "eye", "ear", "muzzle", "horn", "torso", "neck", "leg", "tail"],
+      "synonyms": ["lamb", "ewe", "ram"]
+    },
+
+    "sofa": {
+      "class_id": 18,
+      "fold": 3,
+      "templates": [
+        "a photo of a sofa",
+        "a photo of the sofa",
+        "an image containing a sofa",
+        "a picture of a sofa",
+        "a sofa in the scene"
+      ],
+      "descriptions": [
+        "A sofa, an upholstered seating furniture long enough to seat two or more people side by side, with a continuous padded backrest and armrests on both ends, distinguished from chairs by accommodating multiple people and from beds by the presence of a backrest and being designed for sitting.",
+        "A long padded seating piece featuring soft cushions on both the seat and the backrest, armrests at each end, and a fabric or leather upholstery covering the entire structure.",
+        "A piece of living-room furniture recognizable by its elongated horizontal profile, plush cushioning, raised arms on either side, and capacity for multiple seated occupants.",
+        "An indoor seating furniture with a wide cushioned seat and tall padded back, often placed against walls in living rooms, frequently accompanied by throw pillows."
+      ],
+      "parts": ["seat", "back", "armrest", "leg", "cushion"],
+      "synonyms": ["couch", "settee", "loveseat"]
+    },
+
+    "train": {
+      "class_id": 19,
+      "fold": 3,
+      "templates": [
+        "a photo of a train",
+        "a photo of the train",
+        "an image containing a train",
+        "a picture of a train",
+        "a train in the scene"
+      ],
+      "descriptions": [
+        "A train, an extremely long rail vehicle composed of multiple connected carriages running on parallel metal tracks, distinguished from buses by running on rails, the segmented carriage structure, and the much greater length.",
+        "A railway vehicle featuring a locomotive at the front pulling a series of connected cars, each with rows of windows, riding on steel wheels along railroad tracks.",
+        "A long segmented rail transport recognizable by its linear arrangement of multiple carriages, prominent front engine or driver's cab, and the presence of railway tracks beneath.",
+        "A rail-bound transportation vehicle with a chain of articulated carriages, sometimes electric with overhead lines, sometimes diesel, often photographed at stations, on bridges, or running through countryside."
+      ],
+      "parts": ["headlight", "head", "coach"],
+      "synonyms": ["locomotive", "railway", "subway"]
+    },
+
+    "tvmonitor": {
+      "class_id": 20,
+      "fold": 3,
+      "templates": [
+        "a photo of a tv monitor",
+        "a photo of the tv monitor",
+        "an image containing a tv monitor",
+        "a picture of a tv monitor",
+        "a tv monitor in the scene"
+      ],
+      "descriptions": [
+        "A tv monitor, a flat rectangular electronic display screen with a thin bezel frame, distinguished from picture frames by the dark glossy screen surface that may show images or be powered off, and from laptops by the absence of an attached keyboard.",
+        "A flat-panel display device featuring a glossy or matte rectangular screen, a slim border frame, and a stand or wall mount, used for watching content or as a computer monitor.",
+        "An electronic screen recognizable by its rectangular flat shape, smooth glass front surface, thin bezel, and placement on desks, walls, or media stands.",
+        "A display device with a dark inactive screen or a brightly lit image, surrounded by a thin frame, supported by a stand at the back, ranging from small computer monitors to large televisions."
+      ],
+      "parts": ["screen", "frame"],
+      "synonyms": ["television", "tv", "monitor", "screen", "display"]
+    }
+  },
+
+  "negative_pool": {
+    "_comment": "Use these for hard-negative text sampling in contrastive training. Pair visually-similar classes so the model must learn to distinguish them via text.",
+    "aeroplane": ["bird", "boat"],
+    "bicycle": ["motorbike"],
+    "bird": ["aeroplane", "cat"],
+    "boat": ["bus", "car"],
+    "bottle": ["pottedplant"],
+    "bus": ["car", "train"],
+    "car": ["bus", "motorbike"],
+    "cat": ["dog", "bird"],
+    "chair": ["sofa", "diningtable"],
+    "cow": ["horse", "sheep", "dog"],
+    "diningtable": ["chair", "sofa"],
+    "dog": ["cat", "sheep", "cow", "horse"],
+    "horse": ["cow", "sheep", "dog"],
+    "motorbike": ["bicycle", "car"],
+    "person": ["dog"],
+    "pottedplant": ["bottle"],
+    "sheep": ["dog", "cow", "horse"],
+    "sofa": ["chair", "diningtable"],
+    "train": ["bus", "car"],
+    "tvmonitor": ["chair"]
+  }
+}
