@@ -12,7 +12,7 @@ from model.VRP_encoder_CA_fusion import VRP_encoder
 from common.logger_CA_fusion import Logger, AverageMeter
 from common.evaluation import Evaluator
 from common import utils
-from data.dataset import FSSDataset
+from data.dataset_CA_fusion import FSSDataset
 from SAM2pred import SAM_pred
 
 
