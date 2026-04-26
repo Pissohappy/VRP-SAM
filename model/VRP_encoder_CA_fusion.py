@@ -2,6 +2,7 @@ r""" Visual Prompt Encoder of VRP-SAM """
 from functools import reduce
 from operator import add
 import random
+import clip
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -144,37 +145,6 @@ def dice_loss(
     loss = 1 - (numerator + 1) / (denominator + 1)
     return loss.sum() / num_masks
 
-PASCAL_CLASS_NAMES = [
-    'aeroplane', 'bicycle', 'bird', 'boat', 'bottle',
-    'bus', 'car', 'cat', 'chair', 'cow',
-    'dining table', 'dog', 'horse', 'motorbike', 'person',
-    'potted plant', 'sheep', 'sofa', 'train', 'tv monitor',
-]
-
-COCO_CLASS_NAMES = [
-    'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck',
-    'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench',
-    'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra',
-    'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
-    'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove',
-    'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup',
-    'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange',
-    'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
-    'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse',
-    'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink',
-    'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear',
-    'hair drier', 'toothbrush',
-]
-
-
-def get_class_names(benchmark):
-    if benchmark == 'pascal':
-        return PASCAL_CLASS_NAMES
-    if benchmark == 'coco':
-        return COCO_CLASS_NAMES
-    raise ValueError('Text prompt fusion is only configured for pascal/coco, got: %s' % benchmark)
-
-
 class VRP_encoder(nn.Module):
     def __init__(self, args, backbone, use_original_imgsize):
         super(VRP_encoder, self).__init__()
@@ -217,64 +187,32 @@ class VRP_encoder(nn.Module):
         self.num_query = args.num_query
 
         self.transformer_decoder = transformer_decoder(args, args.num_query, hidden_dim, hidden_dim*2)
-        self.prompt_fusion = getattr(args, 'prompt_fusion', 'visual')
-        self.text_prompt_template = getattr(args, 'text_prompt_template', 'a photo of a {}.')
-        if self.prompt_fusion == 'confidence_text':
-            self.text_prompt_proj = nn.Sequential(
-                nn.Linear(512, hidden_dim),
-                nn.LayerNorm(hidden_dim),
-            )
-            self.visual_confidence = nn.Sequential(
-                nn.LayerNorm(hidden_dim),
-                nn.Linear(hidden_dim, hidden_dim // 2),
-                nn.ReLU(inplace=True),
-                nn.Linear(hidden_dim // 2, 1),
-            )
-            self.register_buffer(
-                'clip_text_features',
-                self._build_clip_text_features(args, getattr(args, 'clip_model', 'ViT-B/16')),
-                persistent=True,
-            )
-        elif self.prompt_fusion != 'visual':
-            raise ValueError('Unsupported prompt fusion mode: %s' % self.prompt_fusion)
+
+        self.pascal_class_names = [
+            'aeroplane', 'bicycle', 'bird', 'boat', 'bottle',
+            'bus', 'car', 'cat', 'chair', 'cow',
+            'dining table', 'dog', 'horse', 'motorbike', 'person',
+            'potted plant', 'sheep', 'sofa', 'train', 'tv monitor'
+        ]
+        self.clip_model, _ = clip.load('ViT-B/16', device='cpu')
+        for parameter in self.clip_model.parameters():
+            parameter.requires_grad = False
+        self.clip_model.eval()
+        with torch.no_grad():
+            text_tokens = clip.tokenize([f'a photo of a {class_name}' for class_name in self.pascal_class_names])
+            text_features = self.clip_model.encode_text(text_tokens)
+            text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+        del self.clip_model
+        self.register_buffer('pascal_text_features', text_features.float())
+
+        self.text_proj = nn.Linear(text_features.shape[-1], hidden_dim)
+        self.confidence_head = nn.Linear(hidden_dim, 1)
 
         self.cross_entropy_loss = nn.CrossEntropyLoss()
         self.mse_loss = nn.MSELoss()
         self.bce_with_logits_loss = nn.BCEWithLogitsLoss()
 
-    def _build_clip_text_features(self, args, clip_model_name):
-        try:
-            import clip
-        except ImportError as exc:
-            raise ImportError(
-                "prompt_fusion='confidence_text' requires OpenAI CLIP. "
-                "Install it with: pip install git+https://github.com/openai/CLIP.git"
-            ) from exc
-
-        class_names = get_class_names(args.benchmark)
-        text_prompts = [self.text_prompt_template.format(name) for name in class_names]
-        clip_model, _ = clip.load(clip_model_name, device='cpu')
-        clip_model.eval()
-        with torch.no_grad():
-            text_tokens = clip.tokenize(text_prompts)
-            text_features = clip_model.encode_text(text_tokens).float()
-            text_features = text_features / text_features.norm(dim=-1, keepdim=True).clamp_min(1e-6)
-        del clip_model
-        return text_features
-
-    def fuse_prompts(self, visual_prompts, class_id):
-        if self.prompt_fusion == 'visual':
-            return visual_prompts
-        if class_id is None:
-            raise ValueError("class_id is required when prompt_fusion='confidence_text'")
-
-        text_features = self.clip_text_features[class_id.long().to(visual_prompts.device)]
-        text_prompts = self.text_prompt_proj(text_features).unsqueeze(1)
-        text_prompts = text_prompts.expand_as(visual_prompts)
-        gamma = torch.sigmoid(self.visual_confidence(visual_prompts))
-        return gamma * visual_prompts + (1.0 - gamma) * text_prompts
-
-    def forward(self, condition, query_img, support_img, support_mask, training, class_id=None):
+    def forward(self, condition, query_img, support_img, support_mask, class_id, training):
 
         # if training:
         #     condition = random.Random().choices(['scribble', 'point', 'box', 'mask'], weights=[0.25,0.25,0.25,0.25], k=1)[0]  
@@ -318,8 +256,14 @@ class VRP_encoder(nn.Module):
         supp_feat_1 = self.merge_1(torch.cat([supp_feat, supp_feat_bin, support_mask*10], 1))                                                                                    
         query_feat_1 = self.merge_1(torch.cat([query_feat, supp_feat_bin, pseudo_mask*10], 1))
 
-        protos = self.transformer_decoder(query_feat_1, supp_feat_1, support_mask)
-        protos = self.fuse_prompts(protos, class_id)
+        protos_visual = self.transformer_decoder(query_feat_1, supp_feat_1, support_mask)
+
+        class_id = class_id.long()
+        text_feat = self.pascal_text_features[class_id]
+        text_proj = self.text_proj(text_feat).unsqueeze(1).expand(-1, self.num_query, -1)
+
+        gamma = torch.sigmoid(self.confidence_head(protos_visual.mean(dim=1))).unsqueeze(1)
+        protos = gamma * protos_visual + (1.0 - gamma) * text_proj
         return protos, support_mask_ori
 
     def mask_feature(self, features, support_mask):
@@ -336,7 +280,7 @@ class VRP_encoder(nn.Module):
         logit_mask_agg = 0
         protos_set = []
         for s_idx in range(nshot):
-            protos_sub, support_mask = self(args.condition, batch['query_img'], batch['support_imgs'][:, s_idx], batch['support_masks'][:, s_idx], False, batch['class_id'])
+            protos_sub, support_mask = self(args.condition, batch['query_img'], batch['support_imgs'][:, s_idx], batch['support_masks'][:, s_idx], batch['class_id'], False)
             protos_set.append(protos_sub)
         if nshot > 1:
             protos = torch.cat(protos_set, dim=1)

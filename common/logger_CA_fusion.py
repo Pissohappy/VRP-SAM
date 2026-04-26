@@ -24,16 +24,14 @@ class AverageMeter:
 
         self.intersection_buf = torch.zeros([2, self.nclass]).float().cuda()
         self.union_buf = torch.zeros([2, self.nclass]).float().cuda()
-        self.gt_buf = torch.zeros([2, self.nclass]).float().cuda()
         self.ones = torch.ones_like(self.union_buf)
         self.loss_buf = []
 
-    def update(self, inter_b, union_b, area_gt, class_id, loss):
+    def update(self, inter_b, union_b, class_id, loss):
         self.intersection_buf.index_add_(1, class_id, inter_b.float())
         self.union_buf.index_add_(1, class_id, union_b.float())
-        self.gt_buf.index_add_(1, class_id, area_gt.float())
         if loss is None:
-            loss = torch.tensor(0.0, device=inter_b.device)
+            loss = torch.tensor(0.0)
         self.loss_buf.append(loss)
 
     def compute_iou(self):
@@ -47,55 +45,34 @@ class AverageMeter:
 
         return miou, fb_iou
 
-    def compute_pixel_accuracy(self):
-        total_inter = self.intersection_buf.index_select(1, self.class_ids_interest).sum()
-        total_gt = self.gt_buf.index_select(1, self.class_ids_interest).sum().clamp_min(1.0)
-        return total_inter.float() / total_gt.float() * 100
-
-    def summarize(self, reduce=False):
-        if reduce:
-            self.intersection_buf, self.union_buf, self.gt_buf = self.reduce_metrics(
-                [self.intersection_buf, self.union_buf, self.gt_buf], False
-            )
-
-        loss_buf = torch.stack(self.loss_buf) if self.loss_buf else torch.zeros(1, device=self.intersection_buf.device)
-        if reduce:
-            loss_buf = self.reduce_metrics([loss_buf])[0]
-
-        miou, fb_iou = self.compute_iou()
-        pix_acc = self.compute_pixel_accuracy()
-        return {
-            'loss': loss_buf.mean(),
-            'miou': miou,
-            'fb_iou': fb_iou,
-            'pix_acc': pix_acc,
-        }
-
     def write_result(self, split, epoch):
-        summary = self.summarize(reduce=True)
+        self.intersection_buf, self.union_buf = self.reduce_metrics([self.intersection_buf, self.union_buf], False)
+        iou, fb_iou = self.compute_iou()
+
+        # loss_buf = torch.stack(self.loss_buf)
         msg = '\n*** %s ' % split
         msg += '[@Epoch %02d] ' % epoch if epoch != -1 else ''
         if epoch != -1:
-            msg += 'Avg L: %6.5f  ' % summary['loss']
-        msg += 'mIoU: %5.2f   ' % summary['miou']
-        msg += 'FB-IoU: %5.2f   ' % summary['fb_iou']
-        msg += 'PixAcc: %5.2f   ' % summary['pix_acc']
+            loss_buf = torch.stack(self.loss_buf)
+            loss_buf = self.reduce_metrics([loss_buf])[0]
+            msg += 'Avg L: %6.5f  ' % loss_buf.mean()
+        msg += 'mIoU: %5.2f   ' % iou
+        msg += 'FB-IoU: %5.2f   ' % fb_iou
 
         msg += '***\n'
         Logger.info(msg)
-        return summary
 
     def write_process(self, batch_idx, datalen, epoch, write_batch_idx=20):
         if batch_idx % write_batch_idx == 0:
-            summary = self.summarize(reduce=False)
             msg = '[Epoch: %02d] ' % epoch if epoch != -1 else ''
             msg += '[Batch: %04d/%04d] ' % (batch_idx+1, datalen)
+            iou, fb_iou = self.compute_iou()
             if epoch != -1:
-                msg += 'L: %6.5f  ' % self.loss_buf[-1]
-                msg += 'Avg L: %6.5f  ' % summary['loss']
-            msg += 'mIoU: %5.2f  |  ' % summary['miou']
-            msg += 'FB-IoU: %5.2f  |  ' % summary['fb_iou']
-            msg += 'PixAcc: %5.2f' % summary['pix_acc']
+                loss_buf = torch.stack(self.loss_buf)
+                msg += 'L: %6.5f  ' % loss_buf[-1]
+                msg += 'Avg L: %6.5f  ' % loss_buf.mean()
+            msg += 'mIoU: %5.2f  |  ' % iou
+            msg += 'FB-IoU: %5.2f' % fb_iou
             Logger.info(msg)
     def reduce_metrics(self, metrics, average=True):
         reduced_metrics = []
@@ -113,9 +90,9 @@ class Logger:
         logpath = args.logpath if training else '_TEST_' + args.load.split('/')[-2].split('.')[0] + logtime
         if logpath == '': logpath = logtime
 
-        cls.logpath = os.path.join('logs', logpath + '.log')
+        cls.logpath = os.path.join('logs', logpath)
         cls.benchmark = args.benchmark
-        os.makedirs(cls.logpath)
+        os.makedirs(cls.logpath, exist_ok=True)
 
         logging.basicConfig(filemode='w',
                             filename=os.path.join(cls.logpath, 'log.txt'),
@@ -145,12 +122,9 @@ class Logger:
         logging.info(msg)
 
     @classmethod
-    def save_model_miou(cls, model, epoch, val_miou, val_pix_acc=None):
+    def save_model_miou(cls, model, epoch, val_miou):
         torch.save(model.state_dict(), os.path.join(cls.logpath, 'best_model.pt'))
-        msg = 'Model saved @%d w/ val. mIoU: %5.2f' % (epoch, val_miou)
-        if val_pix_acc is not None:
-            msg += ', PixAcc: %5.2f' % val_pix_acc
-        cls.info(msg + '.\n')
+        cls.info('Model saved @%d w/ val. mIoU: %5.2f.\n' % (epoch, val_miou))
 
     @classmethod
     def log_params(cls, model):
@@ -165,3 +139,4 @@ class Logger:
         Logger.info('Backbone # param.: %d' % backbone_param)
         Logger.info('Learnable # param.: %d' % learner_param)
         Logger.info('Total # param.: %d' % (backbone_param + learner_param))
+
