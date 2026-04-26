@@ -84,7 +84,7 @@ Create a directory '../dataset' for the above few-shot segmentation datasets and
 We provide a example training command. Detailed training argumnets are as follows:
 
 > ```bash
-> python3 -m torch.distributed.launch --nproc_per_node=$GPUs$ {train_gated_fusion.py, train_cross_attention.py, train_CA_fusion.py} \
+> python3 -m torch.distributed.launch --nproc_per_node=$GPUs$ {train_gated_fusion.py, train_cross_attention.py, train_CA_fusion.py, train_enriched_text.py} \
 >         --datapath $PATH_TO_YOUR_DATA$ \
 >         --logpath $PATH_TO_YOUR_LOG$ \
 >         --benchmark {coco, pascal} \
@@ -96,10 +96,10 @@ We provide a example training command. Detailed training argumnets are as follow
 >         --lr 1e-4 \
 >         --bsz 2  \
 >
->         # the additional arg for cross_attention
+>         # the additional arg for train_cross_attention.py
 >         --fusion_type text_cross_attention   
 > ```
-
+Where train_gated_fusion.py, train_cross_attention.py and train_CA_fusion.py are our three visual-text fusion strategy, train_enriched_text.py is our ablation experiment on the influence of text description details.
    
 ## BibTeX
 Citing to original VRP-SAM and their [code base](https://github.com/syp2ysy/VRP-SAM):
