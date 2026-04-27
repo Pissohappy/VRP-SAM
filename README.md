@@ -1,3 +1,6 @@
+## VRP-SAM-T: Exploring Text Guided Visual Reference Prompting for Few Shot Segmentation
+Implementation of NTU AI6103 Deep Learning group project.
+
 ## Requirements
 
 - Python 3.10
